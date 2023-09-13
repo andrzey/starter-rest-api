@@ -141,6 +141,27 @@ router.get("/work/:email", async function (req, res) {
   }
 });
 
+router.get("/home/:email", async function (req, res) {
+  try {
+    const participant = await participants.get(req.params.email);
+
+    if (!participant || participant.props.active !== true) {
+      return res
+        .status(404)
+        .json(`Could not find participant with email '${req.params.email}'`);
+    }
+
+    const { home } = participant.props;
+
+    res.status(200).send({
+      country: home.country,
+      city: home.city,
+    });
+  } catch (error) {
+    res.status(500).send("Could not get participant");
+  }
+});
+
 router.delete("/:email", async function (req, res) {
   const participant = await participants.get(req.params.email);
 
