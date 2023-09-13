@@ -117,17 +117,27 @@ router.get("/details/:email", async function (req, res) {
   } catch (error) {
     res.status(500).send("Could not get participant");
   }
+});
 
+router.get("/work/:email", async function (req, res) {
   try {
-    const list = await getParticipantData();
+    const participant = await participants.get(req.params.email);
 
-    const filteredList = list.filter(
-      (participant) => participant.props.active !== true
-    );
+    if (!participant || participant.props.active !== true) {
+      return res
+        .status(404)
+        .json(`Could not find participant with email '${req.params.email}'`);
+    }
 
-    res.status(200).send(filteredList);
+    const { work } = participant.props;
+
+    res.status(200).send({
+      companyname: work.companyname,
+      salary: work.salary,
+      currency: work.currency,
+    });
   } catch (error) {
-    res.status(500).send("Could not get deleted participants");
+    res.status(500).send("Could not get participant");
   }
 });
 
