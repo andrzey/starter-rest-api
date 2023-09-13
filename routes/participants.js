@@ -1,5 +1,3 @@
-// @ts-check
-
 const CyclicDb = require("@cyclic.sh/dynamodb");
 const express = require("express");
 const { check, validationResult } = require("express-validator");
@@ -8,13 +6,14 @@ const router = express.Router();
 const db = CyclicDb(process.env.CYCLIC_DB);
 const participants = db.collection("participants");
 
-const validateBody = [
-  check("email").isEmail().withMessage("Enter a valid email"),
+const validateUser = [
+  check("email").isEmail().withMessage("Email is required"),
   check("firstname").notEmpty().withMessage("First name is required"),
   check("lastname").notEmpty().withMessage("Last name is required"),
-  check("dob").isISO8601().withMessage("Enter a valid date format"),
+  check("dob").isISO8601().withMessage("Date of birth is required"),
   check("work").exists().withMessage("Work data is required"),
   check("home").exists().withMessage("Home data is required"),
+  check("active").isBoolean().withMessage("Active is required"),
 ];
 
 const getParticipantData = async () => {
@@ -40,14 +39,14 @@ router.get("/", async function (_, res) {
   }
 });
 
-router.post("/", validateBody, async function (req, res) {
+router.post("/", validateUser, async function (req, res) {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { email, firstname, lastname, dob, work, home } = req.body;
+  const { email, firstname, lastname, dob, work, home, active } = req.body;
 
   try {
     const user = await participants.get(email);
@@ -60,7 +59,7 @@ router.post("/", validateBody, async function (req, res) {
       firstname,
       lastname,
       dob,
-      active: true,
+      active,
       work,
       home,
     });
@@ -177,6 +176,37 @@ router.delete("/:email", async function (req, res) {
     res.status(200).send(`User with email '${req.params.email}' deleted`);
   } catch (error) {
     res.status(500).send("Could not delete user");
+  }
+});
+
+router.put("/", validateUser, async function (req, res) {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { email, firstname, lastname, dob, work, home, active } = req.body;
+
+  try {
+    const user = await participants.get(email);
+
+    if (!user) {
+      return res.status(400).send(`User with email '${email}' was not found`);
+    }
+
+    await participants.set(email, {
+      firstname,
+      lastname,
+      dob,
+      active,
+      work,
+      home,
+    });
+
+    res.status(200).send(`User with email '${email}' updated`);
+  } catch (error) {
+    res.status(500).send("Could not update user");
   }
 });
 
