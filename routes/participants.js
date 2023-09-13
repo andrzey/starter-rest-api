@@ -16,7 +16,7 @@ const validateUser = [
   check("active").isBoolean().withMessage("Active is required"),
 ];
 
-const getParticipantData = async () => {
+const getParticipants = async () => {
   const participantList = await participants.list();
   const participantPromises = participantList?.results.map(
     async (participant) => {
@@ -31,7 +31,7 @@ const getParticipantData = async () => {
 
 router.get("/", async function (_, res) {
   try {
-    const list = await getParticipantData();
+    const list = await getParticipants();
 
     res.status(200).send(list);
   } catch (error) {
@@ -72,7 +72,7 @@ router.post("/", validateUser, async function (req, res) {
 
 router.get("/details", async function (_, res) {
   try {
-    const list = await getParticipantData();
+    const list = await getParticipants();
 
     const filteredList = list.filter(
       (participant) => participant.props.active === true
@@ -86,7 +86,7 @@ router.get("/details", async function (_, res) {
 
 router.get("/details/deleted", async function (_, res) {
   try {
-    const list = await getParticipantData();
+    const list = await getParticipants();
 
     const filteredList = list.filter(
       (participant) => participant.props.active !== true
