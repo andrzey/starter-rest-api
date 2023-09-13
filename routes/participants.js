@@ -17,9 +17,8 @@ const validateBody = [
   check("home").exists().withMessage("Home data is required"),
 ];
 
-router.get("/", async function (_, res) {
+const getParticipantData = async () => {
   const participantList = await participants.list();
-
   const participantPromises = participantList?.results.map(
     async (participant) => {
       return participants.get(participant.key);
@@ -28,16 +27,20 @@ router.get("/", async function (_, res) {
 
   const list = await Promise.all(participantPromises);
 
-  res.status(200).send(list);
+  return list;
+};
+
+router.get("/", async function (_, res) {
+  try {
+    const list = await getParticipantData();
+
+    res.status(200).send(list);
+  } catch (error) {
+    res.status(500).send("Could not get participants");
+  }
 });
 
-router.delete("/", async function (req, res, next) {
-  // await participants.delete("a@gmail.com");
-
-  res.status(200).send("Yolo");
-});
-
-router.post("/", validateBody, async function (req, res, next) {
+router.post("/", validateBody, async function (req, res) {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -66,6 +69,90 @@ router.post("/", validateBody, async function (req, res, next) {
   } catch (error) {
     res.status(500).send("Could not create user");
   }
+});
+
+router.get("/details", async function (_, res) {
+  try {
+    const list = await getParticipantData();
+
+    const filteredList = list.filter(
+      (participant) => participant.props.active === true
+    );
+
+    res.status(200).send(filteredList);
+  } catch (error) {
+    res.status(500).send("Could not get active participants");
+  }
+});
+
+router.get("/details/deleted", async function (_, res) {
+  try {
+    const list = await getParticipantData();
+
+    const filteredList = list.filter(
+      (participant) => participant.props.active !== true
+    );
+
+    res.status(200).send(filteredList);
+  } catch (error) {
+    res.status(500).send("Could not get deleted participants");
+  }
+});
+
+router.get("/details/:email", async function (req, res) {
+  try {
+    const participant = await participants.get(req.params.email);
+
+    if (!participant || participant.props.active !== true) {
+      return res
+        .status(404)
+        .json(`Could not find participant with email '${req.params.email}'`);
+    }
+
+    res.status(200).send({
+      name: participant.props.firstname,
+      lastname: participant.props.lastname,
+      active: participant.props.active,
+    });
+  } catch (error) {
+    res.status(500).send("Could not get participant");
+  }
+
+  try {
+    const list = await getParticipantData();
+
+    const filteredList = list.filter(
+      (participant) => participant.props.active !== true
+    );
+
+    res.status(200).send(filteredList);
+  } catch (error) {
+    res.status(500).send("Could not get deleted participants");
+  }
+});
+
+router.delete("/:email", async function (req, res) {
+  const participant = await participants.get(req.params.email);
+
+  if (!participant) {
+    return res
+      .status(404)
+      .json(`Could not find participant with email '${req.params.email}'`);
+  }
+
+  try {
+    await participants.set(req.params.email, { active: false });
+
+    res.status(200).send(`User with email '${req.params.email}' deleted`);
+  } catch (error) {
+    res.status(500).send("Could not delete user");
+  }
+});
+
+router.delete("/", async function (req, res, next) {
+  await participants.delete("alma@gmail.com");
+
+  res.status(200).send("Yolo");
 });
 
 module.exports = router;
