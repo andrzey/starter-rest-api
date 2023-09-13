@@ -72,13 +72,16 @@ router.post("/", validateUser, async function (req, res) {
 
 router.get("/details", async function (_, res) {
   try {
-    const list = await getParticipants();
+    const list = await participants.filter({ active: true });
 
-    const filteredList = list.filter(
-      (participant) => participant.props.active === true
-    );
+    const mappedList = list?.results.map((participant) => {
+      return {
+        firstname: participant.props.firstname,
+        lastname: participant.props.lastname,
+      };
+    });
 
-    res.status(200).send(filteredList);
+    res.status(200).send(mappedList);
   } catch (error) {
     res.status(500).send("Could not get active participants");
   }
@@ -86,13 +89,15 @@ router.get("/details", async function (_, res) {
 
 router.get("/details/deleted", async function (_, res) {
   try {
-    const list = await getParticipants();
+    const list = await participants.filter({ active: false });
 
-    const filteredList = list.filter(
-      (participant) => participant.props.active !== true
-    );
-
-    res.status(200).send(filteredList);
+    const mappedList = list?.results.map((participant) => {
+      return {
+        firstname: participant.props.firstname,
+        lastname: participant.props.lastname,
+      };
+    });
+    res.status(200).send(mappedList);
   } catch (error) {
     res.status(500).send("Could not get deleted participants");
   }
@@ -208,12 +213,6 @@ router.put("/", validateUser, async function (req, res) {
   } catch (error) {
     res.status(500).send("Could not update user");
   }
-});
-
-router.delete("/", async function (req, res, next) {
-  await participants.delete("alma@gmail.com");
-
-  res.status(200).send("Yolo");
 });
 
 module.exports = router;
